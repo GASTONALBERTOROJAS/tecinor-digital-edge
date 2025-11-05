@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Cog, Code, BarChart3, TrendingUp } from "lucide-react";
+import { ArrowRight, Cog, Code, BarChart3, TrendingUp, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ServiceCard from "@/components/ServiceCard";
+import Hero3D from "@/components/Hero3D";
 import heroImage from "@/assets/hero-industrial.jpg";
 
 const Index = () => {
@@ -54,7 +55,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
-      {/* Hero Section */}
+      {/* Hero Section with 3D */}
       <section className="relative pt-16 min-h-screen flex items-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
@@ -62,24 +63,32 @@ const Index = () => {
             alt="Tecnología industrial moderna" 
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-hero opacity-90"></div>
+          <div className="absolute inset-0 bg-gradient-hero opacity-95"></div>
         </div>
+        
+        {/* 3D Element */}
+        <Hero3D />
         
         <div className="container mx-auto px-4 z-10 relative">
           <div className="max-w-3xl">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-primary-foreground animate-fade-in">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/20 backdrop-blur-sm rounded-full mb-6 animate-fade-in border border-accent/30">
+              <Sparkles className="text-accent" size={20} />
+              <span className="text-primary-foreground font-medium">Innovación Industrial 4.0</span>
+            </div>
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 text-primary-foreground animate-fade-in bg-gradient-to-r from-white via-white to-accent/80 bg-clip-text text-transparent leading-tight">
               Tecnología e Ingeniería para una Industria Más Eficiente
             </h1>
-            <p className="text-xl md:text-2xl text-primary-foreground/90 mb-8 leading-relaxed animate-slide-in-left">
+            <p className="text-xl md:text-2xl text-primary-foreground/95 mb-8 leading-relaxed animate-slide-in-left font-light">
               Ayudamos a empresas industriales europeas a optimizar sus procesos mediante automatización, desarrollo de software y análisis de datos.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 animate-scale-in">
-              <Button asChild size="lg" className="bg-accent hover:bg-accent-hover text-lg">
+              <Button asChild size="lg" className="bg-accent hover:bg-accent-hover text-lg shadow-lg hover:shadow-xl transition-all group">
                 <Link to="/contacto">
-                  Solicitar Propuesta <ArrowRight className="ml-2" size={20} />
+                  Solicitar Propuesta 
+                  <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/20 text-lg">
+              <Button asChild size="lg" variant="outline" className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/20 text-lg backdrop-blur-sm">
                 <Link to="/servicios">
                   Ver Servicios
                 </Link>
