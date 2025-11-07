@@ -199,6 +199,7 @@ const Hero3D = () => {
         <DataNetwork />
         <DataParticles />
         <OrbitControls 
+          makeDefault
           enableZoom={false} 
           enablePan={false}
           autoRotate
