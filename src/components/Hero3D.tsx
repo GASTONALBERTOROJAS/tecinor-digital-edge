@@ -192,7 +192,7 @@ const DataParticles = () => {
 const Hero3D = () => {
   return (
     <div className="absolute right-0 top-0 w-full lg:w-1/2 h-full opacity-70 lg:opacity-90">
-      <Canvas camera={{ position: [0, 0, 7], fov: 60 }}>
+      <Canvas camera={{ position: [0, 0, 10], fov: 50 }}>
         <ambientLight intensity={0.4} />
         <pointLight position={[10, 10, 10]} intensity={0.8} color="#60a5fa" />
         <pointLight position={[-10, -10, -5]} intensity={0.5} color="#8b5cf6" />
