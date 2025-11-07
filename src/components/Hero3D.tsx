@@ -1,29 +1,170 @@
 import { useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Float, Sphere, Box, Cylinder, Line } from "@react-three/drei";
+import { OrbitControls, Line, Sphere } from "@react-three/drei";
 import * as THREE from "three";
 
-// Data flow particles
-const DataParticles = () => {
-  const particlesRef = useRef<THREE.Points>(null);
-  
-  const particles = useMemo(() => {
-    const positions = [];
-    for (let i = 0; i < 100; i++) {
-      const angle = (i / 100) * Math.PI * 2;
-      const radius = 2 + Math.random() * 1.5;
-      positions.push(
-        Math.cos(angle) * radius,
-        (Math.random() - 0.5) * 3,
-        Math.sin(angle) * radius
-      );
+// Data network visualization
+const DataNetwork = () => {
+  const groupRef = useRef<THREE.Group>(null);
+  const nodeRefs = useRef<THREE.Mesh[]>([]);
+
+  // Generate data nodes in 3D space
+  const nodes = useMemo(() => {
+    const nodePositions = [];
+    const radius = 3;
+    for (let i = 0; i < 12; i++) {
+      const theta = (i / 12) * Math.PI * 2;
+      const phi = Math.acos((Math.random() * 2) - 1);
+      const x = radius * Math.sin(phi) * Math.cos(theta);
+      const y = radius * Math.sin(phi) * Math.sin(theta);
+      const z = radius * Math.cos(phi);
+      nodePositions.push({ position: [x, y, z] as [number, number, number], size: 0.1 + Math.random() * 0.15 });
     }
-    return new Float32Array(positions);
+    return nodePositions;
   }, []);
 
+  // Generate connections between nearby nodes
+  const connections = useMemo(() => {
+    const lines = [];
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const dist = Math.sqrt(
+          Math.pow(nodes[i].position[0] - nodes[j].position[0], 2) +
+          Math.pow(nodes[i].position[1] - nodes[j].position[1], 2) +
+          Math.pow(nodes[i].position[2] - nodes[j].position[2], 2)
+        );
+        if (dist < 3.5) {
+          lines.push({
+            start: nodes[i].position,
+            end: nodes[j].position,
+          });
+        }
+      }
+    }
+    return lines;
+  }, [nodes]);
+
   useFrame((state) => {
-    if (particlesRef.current) {
-      particlesRef.current.rotation.y = state.clock.elapsedTime * 0.1;
+    if (groupRef.current) {
+      groupRef.current.rotation.y = state.clock.elapsedTime * 0.08;
+      groupRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.05) * 0.1;
+    }
+
+    // Animate node sizes (data pulses)
+    nodeRefs.current.forEach((node, i) => {
+      if (node) {
+        const pulse = Math.sin(state.clock.elapsedTime * 2 + i * 0.5) * 0.15 + 1;
+        node.scale.setScalar(pulse);
+      }
+    });
+  });
+
+  return (
+    <group ref={groupRef}>
+      {/* Data connections */}
+      {connections.map((connection, index) => (
+        <Line
+          key={`connection-${index}`}
+          points={[connection.start, connection.end]}
+          color="#60a5fa"
+          lineWidth={1.5}
+          transparent
+          opacity={0.25}
+        />
+      ))}
+
+      {/* Data nodes */}
+      {nodes.map((node, index) => (
+        <Sphere
+          key={`node-${index}`}
+          ref={(el) => {
+            if (el) nodeRefs.current[index] = el;
+          }}
+          args={[node.size, 16, 16]}
+          position={node.position}
+        >
+          <meshStandardMaterial
+            color={index % 3 === 0 ? "#3b82f6" : index % 3 === 1 ? "#8b5cf6" : "#06b6d4"}
+            metalness={0.8}
+            roughness={0.2}
+            emissive={index % 3 === 0 ? "#2563eb" : index % 3 === 1 ? "#7c3aed" : "#0891b2"}
+            emissiveIntensity={0.5}
+          />
+        </Sphere>
+      ))}
+    </group>
+  );
+};
+
+// Flowing data particles
+const DataParticles = () => {
+  const particlesRef = useRef<THREE.Points>(null);
+  const velocities = useRef<Float32Array>();
+
+  const { positions, colors } = useMemo(() => {
+    const posArray = [];
+    const colArray = [];
+    const velArray = [];
+    
+    for (let i = 0; i < 200; i++) {
+      // Random position in a sphere
+      const radius = 2 + Math.random() * 2;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos((Math.random() * 2) - 1);
+      
+      posArray.push(
+        radius * Math.sin(phi) * Math.cos(theta),
+        radius * Math.sin(phi) * Math.sin(theta),
+        radius * Math.cos(phi)
+      );
+
+      // Random velocities
+      velArray.push(
+        (Math.random() - 0.5) * 0.02,
+        (Math.random() - 0.5) * 0.02,
+        (Math.random() - 0.5) * 0.02
+      );
+
+      // Color variation (blue/cyan/purple data)
+      const colorChoice = Math.random();
+      if (colorChoice < 0.33) {
+        colArray.push(0.23, 0.51, 0.96); // Blue
+      } else if (colorChoice < 0.66) {
+        colArray.push(0.38, 0.71, 0.83); // Cyan
+      } else {
+        colArray.push(0.54, 0.36, 0.96); // Purple
+      }
+    }
+    
+    velocities.current = new Float32Array(velArray);
+    return {
+      positions: new Float32Array(posArray),
+      colors: new Float32Array(colArray)
+    };
+  }, []);
+
+  useFrame(() => {
+    if (particlesRef.current && velocities.current) {
+      const pos = particlesRef.current.geometry.attributes.position.array as Float32Array;
+      
+      for (let i = 0; i < pos.length; i += 3) {
+        pos[i] += velocities.current[i];
+        pos[i + 1] += velocities.current[i + 1];
+        pos[i + 2] += velocities.current[i + 2];
+
+        // Reset if too far
+        const dist = Math.sqrt(pos[i] ** 2 + pos[i + 1] ** 2 + pos[i + 2] ** 2);
+        if (dist > 5) {
+          const radius = 2;
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos((Math.random() * 2) - 1);
+          pos[i] = radius * Math.sin(phi) * Math.cos(theta);
+          pos[i + 1] = radius * Math.sin(phi) * Math.sin(theta);
+          pos[i + 2] = radius * Math.cos(phi);
+        }
+      }
+      
+      particlesRef.current.geometry.attributes.position.needsUpdate = true;
     }
   });
 
@@ -32,169 +173,36 @@ const DataParticles = () => {
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          count={particles.length / 3}
-          array={particles}
+          count={positions.length / 3}
+          array={positions}
+          itemSize={3}
+        />
+        <bufferAttribute
+          attach="attributes-color"
+          count={colors.length / 3}
+          array={colors}
           itemSize={3}
         />
       </bufferGeometry>
-      <pointsMaterial size={0.05} color="#3b82f6" transparent opacity={0.6} />
+      <pointsMaterial size={0.08} vertexColors transparent opacity={0.7} />
     </points>
-  );
-};
-
-// Industrial pipeline network
-const IndustrialStructure = () => {
-  const groupRef = useRef<THREE.Group>(null);
-  const pipeRef1 = useRef<THREE.Mesh>(null);
-  const pipeRef2 = useRef<THREE.Mesh>(null);
-  const dataNodeRef = useRef<THREE.Mesh>(null);
-
-  useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y = state.clock.elapsedTime * 0.15;
-    }
-    
-    // Simulate data processing pulses
-    if (dataNodeRef.current) {
-      const pulse = Math.sin(state.clock.elapsedTime * 2) * 0.1 + 1;
-      dataNodeRef.current.scale.setScalar(pulse);
-    }
-
-    // Rotate pipes slightly
-    if (pipeRef1.current) {
-      pipeRef1.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
-    }
-    if (pipeRef2.current) {
-      pipeRef2.current.rotation.x = Math.cos(state.clock.elapsedTime * 0.5) * 0.1;
-    }
-  });
-
-  // Connection lines between nodes
-  const connections = [
-    { start: [0, 0, 0] as [number, number, number], end: [2, 0.5, 0] as [number, number, number] },
-    { start: [0, 0, 0] as [number, number, number], end: [-1.5, -1, 1] as [number, number, number] },
-    { start: [0, 0, 0] as [number, number, number], end: [1, -1.5, -1] as [number, number, number] },
-    { start: [0, 0, 0] as [number, number, number], end: [-1.5, 1, -0.5] as [number, number, number] },
-  ];
-
-  return (
-    <group ref={groupRef}>
-      {/* Central data processing hub */}
-      <Float speed={2} rotationIntensity={0.3} floatIntensity={0.4}>
-        <Sphere ref={dataNodeRef} args={[0.8, 32, 32]} position={[0, 0, 0]}>
-          <meshStandardMaterial 
-            color="#2563eb" 
-            metalness={0.9} 
-            roughness={0.1}
-            emissive="#1e40af"
-            emissiveIntensity={0.3}
-          />
-        </Sphere>
-      </Float>
-
-      {/* Industrial pipes/processes */}
-      <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.3}>
-        <Cylinder ref={pipeRef1} args={[0.15, 0.15, 3, 16]} position={[2, 0.5, 0]} rotation={[0, 0, Math.PI / 2]}>
-          <meshStandardMaterial color="#ea580c" metalness={0.95} roughness={0.05} />
-        </Cylinder>
-      </Float>
-
-      <Float speed={1.7} rotationIntensity={0.2} floatIntensity={0.3}>
-        <Cylinder ref={pipeRef2} args={[0.12, 0.12, 2.5, 16]} position={[-1.5, -1, 1]} rotation={[Math.PI / 4, 0, Math.PI / 3]}>
-          <meshStandardMaterial color="#0891b2" metalness={0.95} roughness={0.05} />
-        </Cylinder>
-      </Float>
-
-      {/* Process nodes - representing automation points */}
-      <Float speed={1.6} rotationIntensity={0.4} floatIntensity={0.4}>
-        <Box args={[0.5, 0.5, 0.5]} position={[1, -1.5, -1]}>
-          <meshStandardMaterial 
-            color="#6366f1" 
-            metalness={0.8} 
-            roughness={0.2}
-            emissive="#4f46e5"
-            emissiveIntensity={0.2}
-          />
-        </Box>
-      </Float>
-
-      <Float speed={2.1} rotationIntensity={0.3} floatIntensity={0.3}>
-        <Box args={[0.4, 0.4, 0.4]} position={[-1.5, 1, -0.5]}>
-          <meshStandardMaterial 
-            color="#8b5cf6" 
-            metalness={0.85} 
-            roughness={0.15}
-            emissive="#7c3aed"
-            emissiveIntensity={0.2}
-          />
-        </Box>
-      </Float>
-
-      {/* Data connection lines */}
-      {connections.map((connection, index) => (
-        <Line
-          key={index}
-          points={[connection.start, connection.end]}
-          color="#60a5fa"
-          lineWidth={2}
-          transparent
-          opacity={0.4}
-        />
-      ))}
-
-      {/* Orbital rings representing process cycles */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[2.5, 0.04, 16, 100]} />
-        <meshStandardMaterial 
-          color="#94a3b8" 
-          metalness={0.9} 
-          roughness={0.1} 
-          transparent 
-          opacity={0.3}
-          emissive="#64748b"
-          emissiveIntensity={0.1}
-        />
-      </mesh>
-      
-      <mesh rotation={[0, Math.PI / 2, Math.PI / 4]}>
-        <torusGeometry args={[2.7, 0.04, 16, 100]} />
-        <meshStandardMaterial 
-          color="#64748b" 
-          metalness={0.9} 
-          roughness={0.1} 
-          transparent 
-          opacity={0.25}
-          emissive="#475569"
-          emissiveIntensity={0.1}
-        />
-      </mesh>
-
-      {/* Additional pipeline segments */}
-      <Float speed={1.4} rotationIntensity={0.2} floatIntensity={0.2}>
-        <Cylinder args={[0.1, 0.1, 2, 16]} position={[0, 1.5, 1.5]} rotation={[Math.PI / 6, 0, 0]}>
-          <meshStandardMaterial color="#f97316" metalness={0.9} roughness={0.1} />
-        </Cylinder>
-      </Float>
-    </group>
   );
 };
 
 const Hero3D = () => {
   return (
-    <div className="absolute right-0 top-0 w-full lg:w-1/2 h-full opacity-60 lg:opacity-100">
-      <Canvas camera={{ position: [0, 0, 8], fov: 50 }}>
-        <ambientLight intensity={0.5} />
-        <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
-        <pointLight position={[-10, -10, -10]} intensity={0.5} />
+    <div className="absolute right-0 top-0 w-full lg:w-1/2 h-full opacity-70 lg:opacity-90">
+      <Canvas camera={{ position: [0, 0, 7], fov: 60 }}>
+        <ambientLight intensity={0.4} />
+        <pointLight position={[10, 10, 10]} intensity={0.8} color="#60a5fa" />
+        <pointLight position={[-10, -10, -5]} intensity={0.5} color="#8b5cf6" />
+        <DataNetwork />
         <DataParticles />
-        <IndustrialStructure />
         <OrbitControls 
           enableZoom={false} 
           enablePan={false}
           autoRotate
-          autoRotateSpeed={0.5}
-          maxPolarAngle={Math.PI / 2}
-          minPolarAngle={Math.PI / 2}
+          autoRotateSpeed={0.3}
         />
       </Canvas>
     </div>
