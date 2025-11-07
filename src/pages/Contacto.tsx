@@ -91,7 +91,7 @@ const Contacto = () => {
                     <div>
                       <h3 className="font-semibold text-foreground mb-1">Teléfono</h3>
                       <a href="tel:+34900000000" className="text-muted-foreground hover:text-primary transition-colors">
-                        +34 900 000 000
+                        +34 687 74 61 83
                       </a>
                     </div>
                   </div>
@@ -103,7 +103,7 @@ const Contacto = () => {
                     <div>
                       <h3 className="font-semibold text-foreground mb-1">Ubicación</h3>
                       <p className="text-muted-foreground">
-                        Madrid, España<br />
+                        Valencia, España<br />
                         Atendemos toda Europa
                       </p>
                     </div>
